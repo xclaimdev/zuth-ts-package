@@ -1,0 +1,61 @@
+{
+  "name": "@zuth/auth",
+  "version": "1.0.0",
+  "description": "Official TypeScript SDK for Zuth Authentication - Easy integration for secure authentication, OAuth, OIDC, and MFA",
+  "main": "dist/index.js",
+  "module": "dist/index.esm.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "test": "jest",
+    "prepublishOnly": "npm run build && npm run type-check"
+  },
+  "keywords": [
+    "authentication",
+    "oauth",
+    "oidc",
+    "jwt",
+    "mfa",
+    "sso",
+    "zuth",
+    "typescript",
+    "sdk"
+  ],
+  "author": "Xclaim Labs",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xclaimdev/zuth-ts-package.git"
+  },
+  "bugs": {
+    "url": "https://github.com/xclaimdev/zuth-ts-package/issues"
+  },
+  "homepage": "https://github.com/xclaimdev/zuth-ts-package#readme",
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "eslint": "^8.54.0",
+    "jest": "^29.7.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "axios": "^1.6.2"
+  },
+  "peerDependencies": {
+    "typescript": ">=4.9.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
+

@@ -1,0 +1,46 @@
+# Source files
+src/
+*.ts
+!*.d.ts
+
+# Development files
+tsconfig.json
+tsup.config.ts
+.eslintrc.json
+.gitignore
+*.log
+
+# Testing
+test/
+*.test.ts
+*.spec.ts
+coverage/
+.nyc_output
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Documentation (keep README and LICENSE)
+docs/
+*.md
+!README.md
+!SECURITY.md
+!LICENSE
+
+# Build config (keep dist)
+node_modules/
+.pnp
+.pnp.js
+
