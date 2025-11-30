@@ -1,5 +1,6 @@
 import axios, { AxiosInstance, AxiosError, AxiosRequestConfig } from 'axios';
 import { ZuthConfig, ZuthError, ZuthSDKError } from './types';
+import { validateSecureUrl } from './security';
 
 /**
  * Base HTTP client for Zuth API
@@ -10,6 +11,22 @@ export class ZuthClient {
   private accessToken: string | null = null;
 
   constructor(private config: ZuthConfig) {
+    // Validate HTTPS in production (allow localhost for development)
+    if (typeof process !== 'undefined' && process.env.NODE_ENV === 'production') {
+      validateSecureUrl(config.baseUrl, false);
+    } else {
+      // Warn in development if not using HTTPS (except localhost)
+      try {
+        validateSecureUrl(config.baseUrl, true);
+      } catch (error) {
+        console.warn(
+          '⚠️ Security Warning: Using HTTP instead of HTTPS. ' +
+          'This is only acceptable for localhost in development. ' +
+          'Always use HTTPS in production.'
+        );
+      }
+    }
+
     this.axiosInstance = axios.create({
       baseURL: config.baseUrl,
       timeout: config.timeout || 30000,
@@ -77,6 +94,8 @@ export class ZuthClient {
 
   /**
    * Get the current access token
+   * ⚠️ SECURITY WARNING: Exposing tokens can lead to security vulnerabilities.
+   * Only use this method when absolutely necessary and never log or expose the token.
    */
   public getAccessToken(): string | null {
     return this.accessToken;

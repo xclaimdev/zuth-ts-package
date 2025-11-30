@@ -8,6 +8,7 @@ import {
   MfaSetupResponse,
   MfaVerifyRequest,
 } from './types';
+import { isValidEmail, isValidPassword, sanitizeInput } from './security';
 
 /**
  * Authentication methods for Zuth SDK
@@ -21,7 +22,23 @@ export class ZuthAuth {
    * @returns User object
    */
   async register(data: RegisterRequest): Promise<User> {
-    const response = await this.client.post<User>('/auth/register', data);
+    // Basic client-side validation
+    if (!isValidEmail(data.email)) {
+      throw new Error('Invalid email format');
+    }
+    
+    if (!isValidPassword(data.password)) {
+      throw new Error('Password must be at least 8 characters long');
+    }
+
+    // Sanitize inputs
+    const sanitizedData: RegisterRequest = {
+      email: sanitizeInput(data.email.toLowerCase().trim()),
+      password: data.password, // Don't sanitize password, but ensure it's a string
+      name: data.name ? sanitizeInput(data.name.trim()) : undefined,
+    };
+
+    const response = await this.client.post<User>('/auth/register', sanitizedData);
     return response;
   }
 
@@ -32,7 +49,18 @@ export class ZuthAuth {
    * @returns Login response with access token and user info
    */
   async login(data: LoginRequest): Promise<LoginResponse> {
-    const response = await this.client.post<LoginResponse>('/auth/login', data);
+    // Basic client-side validation
+    if (!isValidEmail(data.email)) {
+      throw new Error('Invalid email format');
+    }
+
+    // Sanitize email input
+    const sanitizedData: LoginRequest = {
+      email: sanitizeInput(data.email.toLowerCase().trim()),
+      password: data.password, // Don't sanitize password
+    };
+
+    const response = await this.client.post<LoginResponse>('/auth/login', sanitizedData);
     // Automatically set the access token
     this.client.setAccessToken(response.access_token);
     return response;

@@ -10,6 +10,17 @@ import { ZuthAuth } from './auth';
 import { ZuthOAuth } from './oauth';
 import { ZuthConfig } from './types';
 
+// Export security utilities
+export {
+  validateSecureUrl,
+  validateRedirectUri,
+  generateOAuthState,
+  validateOAuthState,
+  sanitizeInput,
+  isValidEmail,
+  isValidPassword,
+} from './security';
+
 export * from './types';
 
 /**

@@ -76,7 +76,12 @@ export interface OAuthAuthorizeParams {
   redirectUri: string;
   responseType?: 'code' | 'token';
   scope?: string;
-  state?: string;
+  state?: string; // Optional - will be auto-generated if not provided
+}
+
+export interface OAuthAuthorizationResult {
+  url: string;
+  state: string; // State parameter (store this for validation in callback)
 }
 
 export interface OAuthTokenRequest {

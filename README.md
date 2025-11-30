@@ -78,24 +78,31 @@ await zuth.auth.logout();
 #### Authorization Code Flow
 
 ```typescript
-// 1. Get authorization URL
-const authUrl = zuth.oauth.getAuthorizationUrl({
+// 1. Get authorization URL (state is auto-generated if not provided)
+const { url: authUrl, state } = zuth.oauth.getAuthorizationUrl({
   clientId: 'your-client-id',
   redirectUri: 'https://yourapp.com/callback',
   responseType: 'code',
   scope: 'openid profile email',
-  state: 'random-state-string', // Optional, for CSRF protection
-});
+  // state is optional - will be auto-generated for CSRF protection
+}, ['https://yourapp.com']); // Optional: validate redirect URI
 
-// 2. Redirect user to authUrl
+// 2. Store state for validation (e.g., in sessionStorage)
+sessionStorage.setItem('oauth_state', state);
+
+// 3. Redirect user to authUrl
 window.location.href = authUrl;
 
 // 3. Handle callback (in your callback route)
+const originalState = sessionStorage.getItem('oauth_state');
+sessionStorage.removeItem('oauth_state'); // Clean up
+
 const tokenResponse = await zuth.oauth.handleCallback(
   window.location.href,
   'your-client-id',
   undefined, // clientSecret (not recommended for client-side)
-  'https://yourapp.com/callback'
+  'https://yourapp.com/callback',
+  originalState || undefined // Validate state for CSRF protection
 );
 
 // Token is automatically stored
@@ -105,11 +112,15 @@ const tokenResponse = await zuth.oauth.handleCallback(
 
 ```typescript
 // Redirect user to authorization
-zuth.oauth.redirectToAuthorization({
+// Store the returned state for validation
+const state = zuth.oauth.redirectToAuthorization({
   clientId: 'your-client-id',
   redirectUri: 'https://yourapp.com/callback',
   scope: 'openid profile email',
-});
+}, ['https://yourapp.com']); // Optional: validate redirect URI
+
+// Store state for validation
+sessionStorage.setItem('oauth_state', state);
 ```
 
 ### Multi-Factor Authentication (MFA)
@@ -203,6 +214,17 @@ const zuth = new Zuth({
   },
 });
 ```
+
+## Security Features
+
+The SDK includes built-in security features:
+
+- ✅ **HTTPS Enforcement** - Automatically validates HTTPS in production
+- ✅ **CSRF Protection** - Auto-generates and validates OAuth state parameters
+- ✅ **Input Validation** - Validates email and password before sending
+- ✅ **Input Sanitization** - Sanitizes user inputs to prevent XSS
+- ✅ **Redirect URI Validation** - Validates OAuth redirect URIs
+- ✅ **Secure Random State** - Uses cryptographically secure random for OAuth state
 
 ## Security Best Practices
 

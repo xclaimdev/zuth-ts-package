@@ -3,7 +3,9 @@ import {
   OAuthAuthorizeParams,
   OAuthTokenRequest,
   OAuthTokenResponse,
+  OAuthAuthorizationResult,
 } from './types';
+import { generateOAuthState, validateOAuthState, validateRedirectUri } from './security';
 
 /**
  * OAuth and OIDC methods for Zuth SDK
@@ -14,19 +16,34 @@ export class ZuthOAuth {
   /**
    * Get OAuth authorization URL
    * @param params OAuth authorization parameters
-   * @returns Authorization URL
+   * @param allowedOrigins Optional list of allowed redirect URI origins for validation
+   * @returns Authorization URL and generated state (if not provided)
    */
-  getAuthorizationUrl(params: OAuthAuthorizeParams): string {
+  getAuthorizationUrl(
+    params: OAuthAuthorizeParams,
+    allowedOrigins?: string[]
+  ): OAuthAuthorizationResult {
+    // Validate redirect URI if allowed origins provided
+    if (allowedOrigins && allowedOrigins.length > 0) {
+      validateRedirectUri(params.redirectUri, allowedOrigins);
+    }
+
+    // Generate state if not provided (CSRF protection)
+    const state = params.state || generateOAuthState();
+
     const baseUrl = this.client.getBaseUrl();
     const queryParams = new URLSearchParams({
       client_id: params.clientId,
       redirect_uri: params.redirectUri,
       response_type: params.responseType || 'code',
       scope: params.scope || 'openid profile email',
-      ...(params.state && { state: params.state }),
+      state,
     });
 
-    return `${baseUrl}/oauth/authorize?${queryParams.toString()}`;
+    return {
+      url: `${baseUrl}/oauth/authorize?${queryParams.toString()}`,
+      state,
+    };
   }
 
   /**
@@ -83,12 +100,19 @@ export class ZuthOAuth {
    * Redirect to OAuth authorization page
    * Use this in browser environments
    * @param params OAuth authorization parameters
+   * @param allowedOrigins Optional list of allowed redirect URI origins for validation
+   * @returns State parameter (store this to validate in callback)
    */
-  redirectToAuthorization(params: OAuthAuthorizeParams): void {
+  redirectToAuthorization(
+    params: OAuthAuthorizeParams,
+    allowedOrigins?: string[]
+  ): string {
     if (typeof window === 'undefined') {
       throw new Error('redirectToAuthorization can only be used in browser environments');
     }
-    window.location.href = this.getAuthorizationUrl(params);
+    const { url, state } = this.getAuthorizationUrl(params, allowedOrigins);
+    window.location.href = url;
+    return state;
   }
 
   /**
@@ -98,18 +122,20 @@ export class ZuthOAuth {
    * @param clientId Client ID
    * @param clientSecret Client Secret (optional, not recommended for client-side)
    * @param redirectUri Redirect URI used in authorization
+   * @param originalState Original state parameter from authorization (for CSRF protection)
    * @returns Token response
    */
   async handleCallback(
     url: string,
     clientId: string,
-    clientSecret?: string,
-    redirectUri?: string
+    clientSecret: string | undefined,
+    redirectUri: string | undefined,
+    originalState?: string
   ): Promise<OAuthTokenResponse> {
     const urlObj = new URL(url);
     const code = urlObj.searchParams.get('code');
     const error = urlObj.searchParams.get('error');
-    // Note: state parameter can be used for CSRF protection validation
+    const receivedState = urlObj.searchParams.get('state');
 
     if (error) {
       throw new Error(`OAuth error: ${error}`);
@@ -117,6 +143,18 @@ export class ZuthOAuth {
 
     if (!code) {
       throw new Error('Authorization code not found in callback URL');
+    }
+
+    // Validate state parameter for CSRF protection
+    if (originalState) {
+      validateOAuthState(receivedState, originalState);
+    } else if (receivedState) {
+      // Warn if state was sent but not validated
+      console.warn(
+        '⚠️ Security Warning: OAuth state parameter received but not validated. ' +
+        'This may leave your application vulnerable to CSRF attacks. ' +
+        'Always validate the state parameter by passing originalState to handleCallback.'
+      );
     }
 
     return this.exchangeCodeForToken({
